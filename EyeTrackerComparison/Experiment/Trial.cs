@@ -87,7 +87,10 @@ namespace EyeTrackerComparison
             Data = aImageName.Split('\n');
             Type = TargetType.Images;
 
-            CreateTargets();
+            if (Target.Images.Length > 0)
+            {
+                CreateTargets();
+            }
         }
 
         public Trial(Size aDisplaySize, string[] aText)
@@ -265,7 +268,7 @@ namespace EyeTrackerComparison
         private void CreateMatrixOfImages()
         {
             Random r = new Random();
-            string[] imageNames = Target.imageNames();
+            string[] imageNames = Target.ImageNames;
 
             double cellWidth = (double)iDisplaySize.Width / ColCount;
             double cellHeight = (double)iDisplaySize.Height / RowCount;

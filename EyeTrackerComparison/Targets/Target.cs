@@ -2,7 +2,6 @@
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Reflection;
 using System.Text;
 
 namespace EyeTrackerComparison
@@ -15,7 +14,7 @@ namespace EyeTrackerComparison
 
         #endregion
 
-        private static List<ResImage> sResImages = null;
+        private static TargetImages sTargetImages = null;
 
         #region Parameters
 
@@ -35,6 +34,35 @@ namespace EyeTrackerComparison
         public List<GazeArea> Areas { get; private set; } = new List<GazeArea>();
         public long ActivationTime { get; set; }
 
+        public static TargetImage[] Images
+        {
+            get
+            {
+                if (sTargetImages == null)
+                    sTargetImages = TargetImages.Instance;
+
+                return sTargetImages.ToArray();
+            }
+        }
+
+        public static string[] ImageNames
+        {
+            get
+            {
+                if (sTargetImages == null)
+                    sTargetImages = TargetImages.Instance;
+
+                List<string> result = new List<string>();
+
+                foreach (TargetImage image in sTargetImages)
+                {
+                    result.Add(image.Name);
+                }
+
+                return result.ToArray();
+            }
+        }
+
         #endregion
 
         #region Public methods
@@ -43,7 +71,10 @@ namespace EyeTrackerComparison
         {
             Data = aImageName;
 
-            Image = images().Find(img => img.Name == aImageName)?.Image;
+            if (sTargetImages == null)
+                sTargetImages = TargetImages.Instance;
+
+            Image = sTargetImages.Find(img => img.Name == aImageName)?.Image;
 
             if (Image == null)
             {
@@ -71,29 +102,6 @@ namespace EyeTrackerComparison
             Image = CreateImageFromText(aText, aLayout);
         }
 
-        public static List<ResImage> images()
-        {
-            if (sResImages == null)
-                CreateImages();
-
-            return sResImages;
-        }
-
-        public static string[] imageNames()
-        {
-            if (sResImages == null)
-                CreateImages();
-
-            List<string> result = new List<string>();
-
-            foreach (ResImage image in sResImages)
-            {
-                result.Add(image.Name);
-            }
-
-            return result.ToArray();
-        }
-
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder("TARGET").
@@ -108,22 +116,6 @@ namespace EyeTrackerComparison
         #endregion
 
         #region Internal methods
-
-        private static void CreateImages()
-        {
-            sResImages = new List<ResImage>();
-
-            TypeInfo t = typeof(Properties.Resources).GetTypeInfo();
-            IEnumerable<PropertyInfo> properties = t.DeclaredProperties;
-            foreach (PropertyInfo prop in properties)
-            {
-                object resource = Properties.Resources.ResourceManager.GetObject(prop.Name);
-                if (resource is Image)
-                {
-                    sResImages.Add(new ResImage(prop.Name, resource as Image));
-                }
-            }
-        }
 
         private void RescaleImage()
         {
@@ -177,7 +169,7 @@ namespace EyeTrackerComparison
         {
             List<string> result = new List<string>();
 
-            string[] images = Target.imageNames();
+            string[] imageNames = Target.ImageNames;
 
             Regex regex = new Regex(@"{\$(?<name>\w+)}");
             foreach (string line in aText)
@@ -189,7 +181,7 @@ namespace EyeTrackerComparison
                     {
                         if (name.Value == "image")
                         {
-                            return images[new Random().Next(images.Length)];
+                            return imageNames[new Random().Next(imageNames.Length)];
                         }
                     }
                     return "";

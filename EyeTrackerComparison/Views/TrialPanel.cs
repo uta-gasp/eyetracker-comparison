@@ -50,7 +50,7 @@ namespace EyeTrackerComparison.Views
             iDisplaySize = Screen.PrimaryScreen.Bounds.Size;
 
             cmbImages.Items.Add("any");
-            cmbImages.Items.AddRange(Target.imageNames());
+            cmbImages.Items.AddRange(Target.ImageNames);
     
             cmbType.SelectedIndex = (int)aTrial.Type;
             switch (aTrial.Type)
