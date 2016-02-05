@@ -9,7 +9,7 @@ namespace EyeTrackerComparison
 {
     public class TargetImages : List<TargetImage>
     {
-        private static readonly string[] IMAGE_FOLDERS = new string[] { @"img\", @"..\..\Images\stimul-rockets\" };
+        private static readonly string[] IMAGE_FOLDERS = new string[] { @"img\", @"..\..\Images\stimuli-rockets\" };
         private static TargetImages sInstance;
 
         public static TargetImages Instance
@@ -58,7 +58,7 @@ namespace EyeTrackerComparison
                 try
                 {
                     Image image = new Bitmap(file.FullName);
-                    this.Add(new TargetImage(file.Name, image));
+                    this.Add(new TargetImage(file.Name.Substring(0, file.Name.Length - 4), image));
                 }
                 catch (Exception ex) { }
             }
