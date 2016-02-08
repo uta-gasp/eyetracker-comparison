@@ -42,7 +42,8 @@ namespace EyeTrackerComparison
         #region Parameters
 
         public int ObjectMaxExtension { get; set; } = DEFAULT_MAX_DIST;
-        public int MappingDelay {
+        public int MappingDelay
+        {
             get { return iDelayTimer.Interval; }
             set { iDelayTimer.Interval = value; }
         }

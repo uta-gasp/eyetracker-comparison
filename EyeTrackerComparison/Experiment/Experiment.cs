@@ -45,9 +45,17 @@ namespace EyeTrackerComparison
 
         #region Parameters
 
-        public int PauseDuration { get; set; } = 2000;
         public bool UseHoming { get; set; } = true;
-        public int TargetActivationDuration { get; set; } = 2500;
+        public int PauseDuration
+        {
+            get { return iPauseTimer.Interval; }
+            set { iPauseTimer.Interval = value; }
+        }
+        public int TargetActivationDuration
+        {
+            get { return iTargetActivationTimer.Interval; }
+            set { iTargetActivationTimer.Interval = value; }
+        }
         public TargetActivationType TargetActivation { get; set; } = TargetActivationType.AllAtOnce;
         public bool Randomize { get; set; } = true;
 
@@ -74,10 +82,7 @@ namespace EyeTrackerComparison
         {
             iTrialIndex = -1;
 
-            iPauseTimer.Interval = PauseDuration;
             iPauseTimer.Tick += PauseTimer_Tick;
-
-            iTargetActivationTimer.Interval = TargetActivationDuration;
             iTargetActivationTimer.Tick += TargetActivationTimer_Tick;
 
             // default trial

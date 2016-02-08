@@ -46,6 +46,11 @@ namespace EyeTrackerComparison
             iETUDriver.OnCalibrated += ETUDriver_OnCalibrated;
             iETUDriver.OnDataEvent += ETUDriver_OnDataEvent;
 
+            SiETUDFloatPoint offset = new SiETUDFloatPoint();
+            offset.X = 0;
+            offset.Y = 0;
+            iETUDriver.set_Offset(ref offset);
+
             iExperiment = new Experiment();
             iExperiment.OnTrialFinished += Experiment_OnTrialFinished;
             iExperiment.OnNextTrial += Experiment_OnNextTrial;
@@ -314,26 +319,41 @@ namespace EyeTrackerComparison
         private void Experiment_OnTrialFinished(object aSender, EventArgs aArgs)
         {
             iParser.setTrial(null);
+
+            byte[] eeData = ByteOps.toBytes("trial-finished");
+            iETUDriver.addExtraEvent(11, 0, ref eeData[0]);
+
             Refresh();
         }
 
         private void Experiment_OnNextTrial(object aSender, Experiment.NextTrialArgs aArgs)
         {
             iParser.setTrial(aArgs.Trial);
+
+            byte[] eeData = ByteOps.toBytes("trial-started");
+            iETUDriver.addExtraEvent(10, 0, ref eeData[0]);
+
             Invalidate();
         }
 
         private void Experiment_OnNextTarget(object aSender, Experiment.NextTrialArgs aArgs)
         {
             iParser.setTrial(aArgs.Trial);
+
+            byte[] eeData = ByteOps.toBytes("target-started");
+            iETUDriver.addExtraEvent(20, 0, ref eeData[0]);
+
             Invalidate();
         }
 
         private void Experiment_OnFinished(object sender, EventArgs e)
         {
+            byte[] eeData = ByteOps.toBytes("exp-finished");
+            iETUDriver.addExtraEvent(5, 0, ref eeData[0]);
+
             iETUDriver.stopTracking();
 
-            askFileName:
+        askFileName:
             if (sfdSaveData.ShowDialog() == DialogResult.OK)
             {
                 string header = new StringBuilder().
