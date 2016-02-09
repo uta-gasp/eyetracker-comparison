@@ -19,7 +19,6 @@ namespace EyeTrackerComparison
 
         #region Internal members
 
-        private PointF iLastPoint = PointF.Empty;
         private TwoLevelLowPassFilter iFilter = new TwoLevelLowPassFilter(SAMPLE_INTERVAL);
 
         private Queue<GazePoint> iPointBuffer = new Queue<GazePoint>();
@@ -50,6 +49,13 @@ namespace EyeTrackerComparison
 
         #endregion
 
+        #region Properties
+
+        public bool Active { get; private set; } = false;
+        public Point LastPoint { get; private set; } = Point.Empty;
+        
+        #endregion
+
         #region Public methods
 
         public GazeProcessor()
@@ -66,15 +72,19 @@ namespace EyeTrackerComparison
 
         public void start()
         {
-            iLastPoint = PointF.Empty;
+            LastPoint = Point.Empty;
 
             iFilter.reset();
             iPointBuffer.Clear();
             iPointsTimer.Start();
+
+            Active = true;
         }
 
         public void stop()
         {
+            Active = false;
+
             iAreas.Clear();
             iPointsTimer.Stop();
             iDelayTimer.Stop();
@@ -165,6 +175,9 @@ namespace EyeTrackerComparison
         {
             GazePoint gp = iFilter.feed(new GazePoint(aTimestamp, aPoint));
 
+            LastPoint = new Point(gp.X, gp.Y);
+            PointProcessed(this, new EventArgs());
+
             if (iAreas.Count == 0)
                 return;
 
@@ -182,8 +195,6 @@ namespace EyeTrackerComparison
                     area.GazeOffset.add(Math.Abs(dx), Math.Abs(dy));
                 }
             }
-
-            PointProcessed(this, new EventArgs());
         }
 
         private void PointsTimer_Tick(object sender, EventArgs e)

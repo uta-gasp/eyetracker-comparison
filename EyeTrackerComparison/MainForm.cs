@@ -13,20 +13,22 @@ namespace EyeTrackerComparison
         #region Options
 
         private int iHomeTargetRadius = 10;
+        private int iGazePointRadius = 3;
 
         #endregion
 
         #region Internal members
 
         private CoETUDriver iETUDriver;
-        private GazeProcessor iParser;
+        private GazeProcessor iProcessor;
         private Experiment iExperiment;
         private Utils.Player iPlayer;
 
         private TheCodeKing.ActiveButtons.Controls.IActiveMenu iMenu;
         private TheCodeKing.ActiveButtons.Controls.ActiveButton mbnETUDOptions;
         private TheCodeKing.ActiveButtons.Controls.ActiveButton mbnCalibrate;
-        private TheCodeKing.ActiveButtons.Controls.ActiveButton mbnToggleTracking;
+        private TheCodeKing.ActiveButtons.Controls.ActiveButton mbnToggleExperiment;
+        private TheCodeKing.ActiveButtons.Controls.ActiveButton mbnTestTracking;
         private TheCodeKing.ActiveButtons.Controls.ActiveButton mbnOptions;
 
         #endregion
@@ -59,8 +61,8 @@ namespace EyeTrackerComparison
 
             CreateMenu();
 
-            iParser = new GazeProcessor();
-            //iParser.PointProcessed += Parser_PointProcessed;
+            iProcessor = new GazeProcessor();
+            iProcessor.PointProcessed += Processor_PointProcessed;
 
             iPlayer = new Utils.WavPlayer();
             iPlayer.init();
@@ -78,7 +80,8 @@ namespace EyeTrackerComparison
         {
             mbnETUDOptions.Enabled = iETUDriver.DeviceCount > 0 && iETUDriver.Active == 0;
             mbnCalibrate.Enabled = iETUDriver.Ready != 0 && iETUDriver.Active == 0;
-            mbnToggleTracking.Enabled = iETUDriver.Ready != 0 && iETUDriver.Calibrated != 0;
+            mbnToggleExperiment.Enabled = iETUDriver.Ready != 0 && iETUDriver.Calibrated != 0 && (iETUDriver.Active == 0 || iExperiment.Active);
+            mbnTestTracking.Enabled = iETUDriver.Ready != 0 && iETUDriver.Calibrated != 0 && !iExperiment.Active;
             mbnOptions.Enabled = iETUDriver.Active == 0;
         }
 
@@ -102,9 +105,9 @@ namespace EyeTrackerComparison
                 iETUDriver.calibrate();
             };
 
-            mbnToggleTracking = new TheCodeKing.ActiveButtons.Controls.ActiveButton();
-            mbnToggleTracking.Text = "Start";
-            mbnToggleTracking.Click += (s, e) =>
+            mbnToggleExperiment = new TheCodeKing.ActiveButtons.Controls.ActiveButton();
+            mbnToggleExperiment.Text = "Start";
+            mbnToggleExperiment.Click += (s, e) =>
             {
                 if (iETUDriver.Active == 0)
                 {
@@ -117,6 +120,20 @@ namespace EyeTrackerComparison
                     {
                         SetDisplayMode(false);
                     }
+                }
+                else
+                {
+                    iETUDriver.stopTracking();
+                }
+            };
+
+            mbnTestTracking = new TheCodeKing.ActiveButtons.Controls.ActiveButton();
+            mbnTestTracking.Text = "Test";
+            mbnTestTracking.Click += (s, e) =>
+            {
+                if (iETUDriver.Active == 0)
+                {
+                    iETUDriver.startTracking();
                 }
                 else
                 {
@@ -137,7 +154,8 @@ namespace EyeTrackerComparison
             };
 
             iMenu.Items.Add(mbnOptions);
-            iMenu.Items.Add(mbnToggleTracking);
+            iMenu.Items.Add(mbnTestTracking);
+            iMenu.Items.Add(mbnToggleExperiment);
             iMenu.Items.Add(mbnCalibrate);
             iMenu.Items.Add(mbnETUDOptions);
         }
@@ -159,8 +177,8 @@ namespace EyeTrackerComparison
 
             aDialog.Trials = iExperiment.Trials;
 
-            aDialog.nudObjectMaxExtension.Value = iParser.ObjectMaxExtension;
-            aDialog.nudMappingDelay.Value = iParser.MappingDelay;
+            aDialog.nudObjectMaxExtension.Value = iProcessor.ObjectMaxExtension;
+            aDialog.nudMappingDelay.Value = iProcessor.MappingDelay;
         }
 
         private void GetValuesFromOptionsDialog(Options aDialog)
@@ -184,8 +202,8 @@ namespace EyeTrackerComparison
                 iExperiment.Trials.Add(trial);
             }
 
-            iParser.ObjectMaxExtension = (int)aDialog.nudObjectMaxExtension.Value;
-            iParser.MappingDelay = (int)aDialog.nudMappingDelay.Value;
+            iProcessor.ObjectMaxExtension = (int)aDialog.nudObjectMaxExtension.Value;
+            iProcessor.MappingDelay = (int)aDialog.nudMappingDelay.Value;
         }
 
         private void SetDisplayMode(bool aActive)
@@ -226,8 +244,8 @@ namespace EyeTrackerComparison
                 trialIndex++;
             }
 
-            storage.add("ObjectMaxExtension", iParser.ObjectMaxExtension);
-            storage.add("MappingDelay", iParser.MappingDelay);
+            storage.add("ObjectMaxExtension", iProcessor.ObjectMaxExtension);
+            storage.add("MappingDelay", iProcessor.MappingDelay);
 
             storage.save(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\eyetrackercomp.txt");
         }
@@ -263,8 +281,8 @@ namespace EyeTrackerComparison
                 trialIndex++;
             }
 
-            iParser.ObjectMaxExtension = storage.get("ObjectMaxExtension", iParser.ObjectMaxExtension);
-            iParser.MappingDelay = storage.get("MappingDelay", iParser.MappingDelay);
+            iProcessor.ObjectMaxExtension = storage.get("ObjectMaxExtension", iProcessor.ObjectMaxExtension);
+            iProcessor.MappingDelay = storage.get("MappingDelay", iProcessor.MappingDelay);
         }
 
         #endregion
@@ -278,7 +296,7 @@ namespace EyeTrackerComparison
 
         private void ETUDriver_OnRecordingStart()
         {
-            iParser.start();
+            iProcessor.start();
 
             SiETUDFloatPoint offset = new SiETUDFloatPoint();
             Rectangle r = this.ClientRectangle;
@@ -288,7 +306,15 @@ namespace EyeTrackerComparison
             iETUDriver.set_Offset(ref offset);
 
             EnabledMenuButtons();
-            mbnToggleTracking.Text = "Stop";
+
+            if (iExperiment.Active)
+            {
+                mbnToggleExperiment.Text = "Stop";
+            }
+            else
+            {
+                mbnTestTracking.Text = "Stop";
+            }
 
             Refresh();
         }
@@ -296,12 +322,26 @@ namespace EyeTrackerComparison
         private void ETUDriver_OnRecordingStop()
         {
             EnabledMenuButtons();
-            mbnToggleTracking.Text = "Start";
 
-            iParser.stop();
-            iExperiment.stop();
+            if (iProcessor.Active)
+            {
+                iProcessor.stop();
+            }
 
-            SetDisplayMode(false);
+            if (iExperiment.Active)
+            {
+                iExperiment.stop();
+                mbnToggleExperiment.Text = "Start";
+            }
+            else
+            {
+                mbnTestTracking.Text = "Test";
+            }
+
+            if (!iMenu.Visible)
+            {
+                SetDisplayMode(false);
+            }
 
             Refresh();
         }
@@ -312,13 +352,14 @@ namespace EyeTrackerComparison
             {
                 SiETUDSample smp = iETUDriver.LastSample;
                 Point pt = PointToClient(new Point((int)smp.X[0], (int)smp.Y[0]));
-                iParser.feed(iExperiment.TimeElapsed, pt);
+
+                iProcessor.feed(iExperiment.TimeElapsed, pt);
             }
         }
 
         private void Experiment_OnTrialFinished(object aSender, EventArgs aArgs)
         {
-            iParser.setTrial(null);
+            iProcessor.setTrial(null);
 
             byte[] eeData = ByteOps.toBytes("trial-finished");
             iETUDriver.addExtraEvent(11, 0, ref eeData[0]);
@@ -328,7 +369,7 @@ namespace EyeTrackerComparison
 
         private void Experiment_OnNextTrial(object aSender, Experiment.NextTrialArgs aArgs)
         {
-            iParser.setTrial(aArgs.Trial);
+            iProcessor.setTrial(aArgs.Trial);
 
             byte[] eeData = ByteOps.toBytes("trial-started");
             iETUDriver.addExtraEvent(10, 0, ref eeData[0]);
@@ -338,7 +379,7 @@ namespace EyeTrackerComparison
 
         private void Experiment_OnNextTarget(object aSender, Experiment.NextTrialArgs aArgs)
         {
-            iParser.setTrial(aArgs.Trial);
+            iProcessor.setTrial(aArgs.Trial);
 
             byte[] eeData = ByteOps.toBytes("target-started");
             iETUDriver.addExtraEvent(20, 0, ref eeData[0]);
@@ -357,7 +398,7 @@ namespace EyeTrackerComparison
             if (sfdSaveData.ShowDialog() == DialogResult.OK)
             {
                 string header = new StringBuilder().
-                    Append(iParser).
+                    Append(iProcessor).
                     AppendLine().
                     Append(iExperiment).
                     ToString();
@@ -368,9 +409,12 @@ namespace EyeTrackerComparison
             }
         }
 
-        private void Parser_PointProcessed(object sender, EventArgs e)
+        private void Processor_PointProcessed(object sender, EventArgs e)
         {
-            Invalidate();
+            if (!iExperiment.Active)
+            {
+                Invalidate();
+            }
         }
 
         #endregion
@@ -401,15 +445,24 @@ namespace EyeTrackerComparison
         {
             if (!iExperiment.Active)
             {
-                int resultOffsetY = 0;
-                Font font = new Font("Arial", 16.0f);
-                foreach (Trial trial in iExperiment.Trials)
+                if (iProcessor.Active)
                 {
-                    if (trial.Result.Valid)
+                    int x = iProcessor.LastPoint.X;
+                    int y = iProcessor.LastPoint.Y;
+                    e.Graphics.FillEllipse(Brushes.Red, new Rectangle(x - iGazePointRadius, y - iGazePointRadius, 2 * iGazePointRadius, 2 * iGazePointRadius));
+                }
+                else
+                {
+                    int resultOffsetY = 0;
+                    Font font = new Font("Arial", 16.0f);
+                    foreach (Trial trial in iExperiment.Trials)
                     {
-                        string result = trial.Result.ToString();
-                        e.Graphics.DrawString(result, font, Brushes.Black, 20, 20 + resultOffsetY);
-                        resultOffsetY += 28 * result.Split('\n').Length;
+                        if (trial.Result.Valid)
+                        {
+                            string result = trial.Result.ToString();
+                            e.Graphics.DrawString(result, font, Brushes.Black, 20, 20 + resultOffsetY);
+                            resultOffsetY += 28 * result.Split('\n').Length;
+                        }
                     }
                 }
             }
