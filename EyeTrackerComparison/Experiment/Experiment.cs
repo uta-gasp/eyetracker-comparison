@@ -96,6 +96,12 @@ namespace EyeTrackerComparison
             if (Trials.Count > 0)
             {
                 result = true;
+
+                foreach (Trial trial in Trials)
+                {
+                    trial.recreateTargets();
+                }
+
                 iTrialIndex = 0;
                 RandomizeTrialsOrder();
 

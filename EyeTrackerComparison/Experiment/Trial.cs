@@ -107,6 +107,14 @@ namespace EyeTrackerComparison
             CreateTargets();
         }
 
+        public void recreateTargets()
+        {
+            if (Target.Images.Length > 0)
+            {
+                CreateTargets();
+            }
+        }
+
         public void start(bool aActivateAll, long aActivationTime)
         {
             ActivationTime = aActivationTime;
