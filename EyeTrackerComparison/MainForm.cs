@@ -80,7 +80,7 @@ namespace EyeTrackerComparison
         {
             mbnETUDOptions.Enabled = iETUDriver.DeviceCount > 0 && iETUDriver.Active == 0;
             mbnCalibrate.Enabled = iETUDriver.Ready != 0 && iETUDriver.Active == 0;
-            mbnToggleExperiment.Enabled = iETUDriver.Ready != 0 && iETUDriver.Calibrated != 0 && (iETUDriver.Active == 0 || iExperiment.Active);
+            mbnToggleExperiment.Enabled = iETUDriver.Ready != 0 && iETUDriver.Calibrated != 0;
             mbnTestTracking.Enabled = iETUDriver.Ready != 0 && iETUDriver.Calibrated != 0 && !iExperiment.Active;
             mbnOptions.Enabled = iETUDriver.Active == 0;
         }
@@ -438,6 +438,13 @@ namespace EyeTrackerComparison
             if (e.KeyCode == Keys.Space)
             {
                 iExperiment.next();
+            }
+            else if (e.KeyCode == Keys.Escape)
+            {
+                if (iETUDriver.Active != 0)
+                {
+                    iETUDriver.stopTracking();
+                }
             }
         }
 

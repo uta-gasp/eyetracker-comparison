@@ -90,7 +90,7 @@ namespace EyeTrackerComparison
             iDelayTimer.Stop();
 
             Fixation fix = iFilter.CurrentFixation;
-            if (fix.Duration > 0)
+            if (fix.Duration > 0 && iTrial != null)
             {
                 fix.Target = iFixTarget;
                 iTrial.Fixations.Add(fix);

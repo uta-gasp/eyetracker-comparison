@@ -284,6 +284,11 @@ namespace EyeTrackerComparison
             {
                 for (int j = 0; j < RowCount; j++)
                 {
+                    if ((j == 0 || j == (RowCount - 1)) && i != (ColCount / 2))
+                    {
+                        continue;
+                    }
+
                     Rectangle rect = new Rectangle((int)(i * cellWidth), (int)(j * cellHeight), (int)cellWidth, (int)cellHeight);
                     rect.Inflate((int)(-cellWidth * CellMargin / 2.0), (int)(-cellHeight * CellMargin / 2.0));
                     int offsetX = Centered ? rect.Width / 2 : r.Next(rect.Width);
